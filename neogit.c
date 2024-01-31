@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include<stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <dirent.h>
@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include<time.h>
 char *username;
 char *email;
 FILE *repo_list;
@@ -20,6 +21,113 @@ int main(int argc, char const* argv[])
     if (argc < 2)
     {
         fprintf(stderr, "Invalid command: too few arguements\n");
+        return 1;
+    }
+    char* cwd = (char*)malloc(2000);
+    if(getcwd(cwd, sizeof(cwd)) == NULL)
+    {
+        fprintf(stderr, "Error in current directory\n");
+        return 1;
+    }
+    struct dirent* entry;
+    bool exists = false;
+    char* tmp_cwd = (char*)malloc(2000);
+    char* address = (char*)malloc(2000);
+    if(get(cwd,sizeof(cwd)) == NULL)
+    {
+        fprintf(stderr, "Error occured\n");
+        return 1;
+    }
+    do
+    {
+        DIR *dir = opendir(".");
+        if (dir == NULL)
+        {
+            fprintf(stderr, "Error occured\n");
+            return 1;
+        }
+        while ((entry = readdir(dir)) != NULL)
+        {
+            if ((entry->d_type == DT_DIR) && (strcmp(entry->d_name, ".neogit") == 0))
+            {
+                getcwd(address, sizeof(address));
+                exists = true;
+                break;
+            }
+        }
+        closedir(dir);
+        if (exists)
+            break;
+
+        if (getcwd(tmp_cwd, sizeof(tmp_cwd)) == NULL)
+        {
+            fprintf(stderr, "Error occured\n");
+            return 1;
+        }
+        if (strcmp(tmp_cwd, "/") != 0)
+        {
+            if (chdir("..") != 0)
+            {
+                fprintf(stderr, "Error occured\n");
+                return 1;
+            }
+        }
+    } while (strcmp(tmp_cwd, "/") != 0);
+    char* run = (char*)malloc(100);
+    if(exists)
+    {
+        strcat(address, "/.neogit");
+        chdir(address);
+        DIR* dir = opendir(".");
+        if(dir == NULL)
+        {
+            fprintf(stderr, "Error occured\n");
+            return 1;
+        }
+        strcat(address, "/alias.txt");
+        FILE* alias_file = fopen(address, "r");
+        char* name = (char*)malloc(2000);
+        bool found = false;
+        // while(fgets(name, 2000, alias_file) != NULL) //checking if the arg given is an alias in local repo or not
+        // {                                            //if not, we check in global text
+        //                                             //if found we scan the command to run it later
+        //     char* command = (char*)malloc(2000);
+        //     char* search = (char*)malloc(2000);
+        //     search = strstr(name, argv[1]);
+        //     if(search == NULL) //the command isn't in local alias text
+        //     {
+        //         //searching in global
+        //         FILE* global = fopen("/home/Documents/neogit/alias_global.txt", "r");
+        //         if(global == NULL)
+        //         {
+        //             fprintf(stderr, "Error in openning alias_global\n");
+        //             return 1;
+        //         }
+        //         char* line = (char*)malloc(2000);
+        //         while(fgtes(line, 2000, global) != NULL)
+        //         {
+        //             if((run = strstr(line, argv[1])) != NULL)
+        //             {
+        //                 found = true;
+        //                 run = run + strlen(argv[1]) + 2;
+        //                 break;
+        //                 //found the command which argv[1] reffers to
+        //             }
+        //         }
+
+        //     }
+        //     else{
+        //         found = true;
+        //         search = search + strlen(argv[1]) + 2;
+        //         run = strcpy(run,search);
+        //         break;
+        //         //realizing the command and running it
+        //     }
+        // }
+
+    }
+    else{
+        fprintf(stderr, "No repository has been initialized yer\n");
         return 1;
     }
     //checking the local .neogit first
@@ -460,17 +568,17 @@ int global_alias(int argc, char const* argv[])
     sscanf(argv[3], "alias.%s", name);
     strcpy(command, argv[4]);
     command = command + strlen("neogit") + 1;
-    bool exists = false;
+    bool exist = false;
     while(fgets(lines, 1000, commands) != NULL)
     {
         if(strcmp(command, lines) == 0)
         {
-            exists = true;
+            exist = true;
             break;
         }
     }
     char* address = (char*)malloc(2000);
-    if(exists)
+    if(exist)
     {
         fprintf(global, "%s  %s", name, command);
     }
@@ -483,4 +591,6 @@ int global_alias(int argc, char const* argv[])
     fclose(commands);
     free(lines);
     return 0;
+
 }
+        
